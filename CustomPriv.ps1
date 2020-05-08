@@ -91,16 +91,15 @@ Add-Content $LogFile  "$((Get-Date).ToString()): Starting script."
 
 Set-PowerCLIConfiguration -InvalidCertificateAction ignore -confirm:$False
 Clear-Host
-# $vCenterServer = Read-Host " Enter the vCenter FQDN or IP here: "  
-# $vCenterUserName = Read-Host " Enter the vCenterUserName here: "  
-# $credentials= Get-Credential -UserName $vCenterUserName  -Message "Enter your vCenter password"
+$vCenterServer = Read-Host " Enter the vCenter FQDN or IP here: "  
+$vCenterUserName = Read-Host " Enter the vCenterUserName here: "  
+$credentials= Get-Credential -UserName $vCenterUserName  -Message "Enter your vCenter password"
 
 try{
     # Connecting to vCenter
     Clear-Host
     Write-Host "================ Connect to vCenter ================"
-    #$vc = Connect-VIServer -Server $vCenterServer -Credential $credentials
-    $vc = Connect-VIServer -Server "sv16-pm-vc67-02.pm.cohesity.com" -User "administrator@vsphere.local" -Password "Fr8shst8rt!@!"
+    $vc = Connect-VIServer -Server $vCenterServer -Credential $credentials
 }
 catch{
     Add-Content $LogFile  "Cannot connect to $vCenterServer. "    
