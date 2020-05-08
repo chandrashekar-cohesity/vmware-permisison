@@ -1,0 +1,82 @@
+{
+  "VMwareSnapshot": [
+    "Datastore.AllocateSpace",
+    "Datastore.Browse",
+    "Datastore.DeleteFile",
+    "Datastore.FileManagement",
+    "Folder.Create",
+    "Folder.Delete",
+    "Global.LogEvent",
+    "Global.ManageCustomFields",
+    "Global.SetCustomField",
+    "Host.Config.Storage",
+    "Network.Assign",
+    "Resource.AssignVMToPool",
+    "Resource.ColdMigrate",
+    "Resource.HotMigrate",
+    "Sessions.TerminateSession",
+    "VApp.AssignResourcePool",
+    "VApp.AssignVM",
+    "VApp.Unregister",
+    "VirtualMachine.Config.DiskLease",
+    "VirtualMachine.Config.AddExistingDisk",
+    "VirtualMachine.Config.AddNewDisk",
+    "VirtualMachine.Config.AdvancedConfig",
+    "VirtualMachine.Config.SwapPlacement",
+    "VirtualMachine.Config.RawDevice",
+    "VirtualMachine.Config.RemoveDisk",
+    "VirtualMachine.Config.ChangeTracking",
+    "VirtualMachine.GuestOperations.Execute",
+    "VirtualMachine.GuestOperations.Query",
+    "VirtualMachine.GuestOperations.Modify",
+    "VirtualMachine.Inventory.Create",
+    "VirtualMachine.Inventory.Register",
+    "VirtualMachine.Interact.GuestControl",
+    "VirtualMachine.Interact.PowerOn",
+    "VirtualMachine.Interact.PowerOff",
+    "VirtualMachine.Provisioning.DiskRandomRead",
+    "VirtualMachine.Provisioning.GetVmFiles",
+    "VirtualMachine.State.CreateSnapshot",
+    "VirtualMachine.State.RemoveSnapshot",
+    "VirtualMachine.State.RevertToSnapshot",
+    "Global.SystemTag",
+    "Global.GlobalTag",
+    "InventoryService.Tagging.AttachTag",
+    "InventoryService.Tagging.ModifyUsedByForCategory",
+    "InventoryService.Tagging.DeleteCategory",
+    "InventoryService.Tagging.EditTag",
+    "InventoryService.Tagging.ModifyUsedByForTag",
+    "InventoryService.Tagging.CreateTag",
+    "InventoryService.Tagging.DeleteTag",
+    "InventoryService.Tagging.EditCategory",
+    "InventoryService.Tagging.CreateCategory"
+  ],
+  "VMwareSnapshotAptThrot": [
+    "Datastore.Config"
+  ],
+  "VMwareSnapshotAptThrotEncyptVM": [
+    "Cryptographer.Access",
+    "Cryptographer.AddDisk",
+    "Cryptographer.Encrypt",
+    "Datastore.Config"
+  ],
+  "StorageSnapshotIntegration": [
+    "Datastore.Rename",
+    "Host.Local.DeleteVM",
+    "VirtualMachine.Config.AddRemoveDevice",
+    "VirtualMachine.Config.Settings",
+    "VirtualMachine.Inventory.Register",
+    "VirtualMachine.Inventory.Delete",
+    "VirtualMachine.Provisioning.DiskRandomAccess",
+    "VirtualMachine.Provisioning.FileRandomAccess"
+  ],
+  "StorageSnapshotIntegrationAdptThrot": [
+    "Datastore.Config"
+  ],
+  "StorageSnapshotIntegrationAdptThrotEncryptVM": [
+    "Datastore.Config",
+    "Cryptographer.Access",
+    "Cryptographer.AddDisk",
+    "Cryptographer.Encrypt"
+  ]
+}
