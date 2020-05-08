@@ -39,8 +39,6 @@
     "VirtualMachine.State.CreateSnapshot",
     "VirtualMachine.State.RemoveSnapshot",
     "VirtualMachine.State.RevertToSnapshot",
-    "Global.SystemTag",
-    "Global.GlobalTag",
     "InventoryService.Tagging.AttachTag"
   ],
   "VMwareSnapshotAptThrot": [
