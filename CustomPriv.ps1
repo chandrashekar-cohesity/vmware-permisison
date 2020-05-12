@@ -3,6 +3,29 @@
 # Stop on any error
 $ErrorActionPreference = "Stop"      
 
+filter leftside{
+    param(
+            [Parameter(Position=0, Mandatory=$true,ValueFromPipeline = $true)]
+            [ValidateNotNullOrEmpty()]
+            [PSCustomObject]
+            $obj
+        )
+    
+        $obj | Where-Object{$_.sideindicator -eq '<='}
+    
+    }
+
+filter rightside{
+        param(
+                [Parameter(Position=0, Mandatory=$true,ValueFromPipeline = $true)]
+                [ValidateNotNullOrEmpty()]
+                [PSCustomObject]
+                $obj
+            )
+        
+            $obj | Where-Object{$_.sideindicator -eq '=>'}
+        
+        }
 function Manage-User-Roles {
     <#
     This function will create a user named "cohesity_backup_user" and a role named 
@@ -15,10 +38,8 @@ role to the collected user
         [string]$Title = 'Role and User Management'
     )
     Write-Host "================ $Title ================"
-    Write-Host "1: Press '1' to create a 'cohesity_backup_user' user and assign the 'cohesity_data_protection_
-role'"
-    Write-Host "2: Press '2' to use an existing user and assign the 'cohesity_data_protection_
-role'"
+    Write-Host "1: Press '1' to create a 'cohesity_backup_user' user and assign the 'cohesity_data_protection_role'"
+    Write-Host "2: Press '2' to use an existing user and assign the 'cohesity_data_protection_ role'"
     Write-Host "Q: Press 'Q' to quit."
 }
 
@@ -31,7 +52,6 @@ function Show-MainMenu {
     param (
         [string]$Title = 'Give Cohesity vCenter User permission'
     )
-    write-host "`n"
     Write-Host "================ $Title ================"
             
     Write-Host "1: Press '1' for Silent Install (Storage Snapshot Integration + Datastore Adaptive Throttling + Encrypted VMs)"
@@ -60,6 +80,63 @@ function Show-InteractiveMenu {
     Write-Host "Q: Press 'Q' to quit."
 }
 
+function RoleManagement($privilegeList) {
+    <#
+    This funtion creates or updates the cohesity_data_protection_role depending on $roleExits Flag 
+    #>
+
+    if($roleExists -ne $null){
+        $existingPrivileges = Get-VIPrivilege -Role cohesity_data_protection_role | Select-Object -Property Id
+        $existingStringPrivileges = $existingPrivileges | ForEach-Object{($_.Id)}                            
+        $deletePrivilegesObj = Compare-Object -ReferenceObject $existingStringPrivileges -DifferenceObject $privilegeList | leftside
+        $addPrivilegesObj = Compare-Object -ReferenceObject $existingStringPrivileges -DifferenceObject $privilegeList | rightside
+        
+        $deletePrivileges = $deletePrivilegesObj | ForEach-Object {$_.InputObject} 
+        $addPrivileges = $addPrivilegesObj | ForEach-Object {$_.InputObject} 
+
+        if(($addPrivileges.Length -eq 0) -and ($deletePrivileges.Length -eq 0 )){
+            Write-Host "================ No updated needed to the privileges ================" -ForegroundColor Yellow
+            Disconnect-VIServer -Server $vc -Confirm:$false
+            exit
+        }
+        elseif(($addPrivileges.Length -eq 0) -and ($deletePrivileges.Length -ge 0 )){
+            Write-Host "================ Removing the following privileges ================" -ForegroundColor Yellow
+            $deletePrivileges
+            Write-Host "===================================================================" -ForegroundColor Yellow
+            Set-VIRole -Role (Get-VIRole -Name cohesity_data_protection_role) -RemovePrivilege (Get-VIPrivilege -id $deletePrivileges -Server $vc)
+        }
+        elseif(($addPrivileges.Length -ge 0) -and ($deletePrivileges.Length -eq 0 )){
+            Write-Host "================ Adding the following privileges ================" -ForegroundColor Yellow
+            $addPrivileges
+            Write-Host "=================================================================" -ForegroundColor Yellow
+            Set-VIRole -Role (Get-VIRole -Name cohesity_data_protection_role) -AddPrivilege (Get-VIPrivilege -id $addPrivileges -Server $vc) 
+        }
+        else{
+            Write-Host "================ Adding the following privileges ==================" -ForegroundColor Yellow
+            $addPrivileges
+            Write-Host "===================================================================" -ForegroundColor Yellow
+            Write-Host "================ Removing the following privileges ================" -ForegroundColor Yellow
+            $deletePrivileges
+            Write-Host "===================================================================" -ForegroundColor Yellow
+            Set-VIRole -Role (Get-VIRole -Name cohesity_data_protection_role) -AddPrivilege (Get-VIPrivilege -id $addPrivileges -Server $vc) -RemovePrivilege (Get-VIPrivilege -id $deletePrivileges -Server $vc)
+        }
+        $rootFolder = Get-Folder -NoRecursion
+        Set-VIPermission -Role $roleName -Permission (Get-VIPermission -Principal $userName)
+        Write-Host "================ Updated $roleName. Check logs for more details ================" -ForegroundColor Green
+        Disconnect-VIServer -Server $vc -Confirm:$false
+        exit
+    }
+    else{
+        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $privilegeList -Server $vc)
+        $rootFolder = Get-Folder -NoRecursion
+        New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
+        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
+        Disconnect-VIServer -Server $vc -Confirm:$false
+        exit
+    }
+    
+}
+
 # Variables that store privileges for different options
 $VMwareSnapshot = @()
 $VMwareSnapshotAptThrot = @()
@@ -86,11 +163,9 @@ $StorageSnapshotIntegration = $VMwareSnapshot + $json.StorageSnapshotIntegration
 $StorageSnapshotIntegrationAdptThrot = $VMwareSnapshot + $json.StorageSnapshotIntegrationAdptThrot
 $StorageSnapshotIntegrationAdptThrotEncryptVM = $VMwareSnapshot + $json.StorageSnapshotIntegrationAdptThrotEncryptVM
 
-
 Add-Content $LogFile  "$((Get-Date).ToString()): Starting script."
 
 Set-PowerCLIConfiguration -InvalidCertificateAction ignore -confirm:$False
-Clear-Host
 $vCenterServer = Read-Host " Enter the vCenter FQDN or IP here: "  
 $vCenterUserName = Read-Host " Enter the vCenterUserName here: "  
 $credentials= Get-Credential -UserName $vCenterUserName  -Message "Enter your vCenter password"
@@ -100,20 +175,29 @@ try{
     Clear-Host
     Write-Host "================ Connect to vCenter ================"
     $vc = Connect-VIServer -Server $vCenterServer -Credential $credentials
+    
+
 }
 catch{
     Add-Content $LogFile  "Cannot connect to $vCenterServer. "    
 }
 
-#$vc = Connect-VIServer -Server $vCenterServer -Credential $credentials
+try{
+    # Check if role already exists
+    $roleExists = Get-VIRole -Name "cohesity_data_protection_role"
+    Write-Host ""
+    Write-Host "Role already present Updating role 'cohesity_data_protection_role'" -ForegroundColor Yellow
+}
+catch{
+    Write-Host ""
+    Write-Host "Role not present already. Creating role 'cohesity_data_protection_role'" -ForegroundColor Yellow
+}
 
-#Default Username and Role name
-#$userName = "cohesity_backup_user"
+#Default Role name
 $roleName = "cohesity_data_protection_role"
-
-$userName = Read-Host " Enter the user name here (DOMAIN\username) "  
+Write-Host ""
+$userName = Read-Host "Enter the user name here (DOMAIN\username) "  
 write-host "`n"
-Write-Host "================ Creating role 'cohesity_data_protection_role' and assigning it to $userName ================"   
   
 #Main menu to collect user preference for applying role to the account user
 do {
@@ -123,15 +207,9 @@ do {
     switch ($MainMenuSelection) {
         '1' {
             # Apply all roles to the user
-            write-host "`n"
             Write-Host "================ Assigning $roleName to $userName.  ================"
             try{
-                New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $StorageSnapshotIntegrationAdptThrotEncryptVM -Server $vc)
-                $rootFolder = Get-Folder -NoRecursion
-                $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                Disconnect-VIServer -Server $vc -Confirm:$false
-                exit
+                RoleManagement($StorageSnapshotIntegrationAdptThrotEncryptVM)
             }
             catch{
                 Add-Content $LogFile $_
@@ -148,12 +226,7 @@ do {
                     write-host "`n"
                     Write-Host "================ Assigning $roleName to $userName.  ================"
                     try{
-                        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $VMwareSnapshot -Server $vc)
-                        $rootFolder = Get-Folder -NoRecursion
-                        $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                        Disconnect-VIServer -Server $vc -Confirm:$false
-                        exit
+                        RoleManagement($VMwareSnapshot)
                     }
                     catch{
                         Add-Content $LogFile $_
@@ -166,12 +239,7 @@ do {
                     write-host "`n"
                     Write-Host "================ Assigning $roleName to $userName.  ================"
                     try{
-                        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $VMwareSnapshotAptThrot -Server $vc)
-                        $rootFolder = Get-Folder -NoRecursion
-                        $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                        Disconnect-VIServer -Server $vc -Confirm:$false
-                        exit
+                        RoleManagement($VMwareSnapshotAptThrot)
                     }
                     catch{
                         Write-Host $_ -ForegroundColor Red
@@ -185,12 +253,7 @@ do {
                     write-host "`n"
                     Write-Host "================ Assigning $roleName to $userName.  ================"
                     try{
-                        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $VMwareSnapshotAptThrotEncyptVM -Server $vc)
-                        $rootFolder = Get-Folder -NoRecursion
-                        $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                        Disconnect-VIServer -Server $vc -Confirm:$false
-                        exit
+                        RoleManagement($VMwareSnapshotAptThrotEncyptVM)
                     }
                     catch{
                         Write-Host $_ -ForegroundColor Red
@@ -203,12 +266,7 @@ do {
                     write-host "`n"
                     Write-Host "================ Assigning $roleName to $userName.  ================"
                     try{
-                        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $StorageSnapshotIntegration -Server $vc)
-                        $rootFolder = Get-Folder -NoRecursion
-                        $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                        Disconnect-VIServer -Server $vc -Confirm:$false
-                        exit
+                        RoleManagement($StorageSnapshotIntegration)
                     }
                     catch{
                         Write-Host $_ -ForegroundColor Red
@@ -222,12 +280,7 @@ do {
                     write-host "`n"
                     Write-Host "================ Assigning $roleName to $userName.  ================"
                     try{
-                        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $StorageSnapshotIntegrationAdptThrot -Server $vc)
-                        $rootFolder = Get-Folder -NoRecursion
-                        $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                        Disconnect-VIServer -Server $vc -Confirm:$false
-                        exit
+                        RoleManagement($StorageSnapshotIntegrationAdptThrot)
                     }
                     catch{
                         Write-Host $_ -ForegroundColor Red
@@ -240,12 +293,7 @@ do {
                     write-host "`n"
                     Write-Host "================ Assigning $roleName to $userName.  ================"
                     try{
-                        New-VIRole -Name $roleName -Privilege (Get-VIPrivilege -id $StorageSnapshotIntegrationAdptThrotEncryptVM -Server $vc)
-                        $rootFolder = Get-Folder -NoRecursion
-                        $permission1 = New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
-                        Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
-                        Disconnect-VIServer -Server $vc -Confirm:$false
-                        exit
+                        RoleManagement($StorageSnapshotIntegrationAdptThrotEncryptVM)
                     }
                     catch{
                         Write-Host $_ -ForegroundColor Red
@@ -266,6 +314,9 @@ do {
                     Show-InteractiveMenu
                 }
             }
+
+        } '3'{
+            Write-Host "================ Reading privilege.json to get new privileges ================" 
 
         } 'Q' {
             Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"    

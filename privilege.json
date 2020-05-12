@@ -1,5 +1,8 @@
 {
   "VMwareSnapshot": [
+    "System.Anonymous",
+    "System.View",
+    "System.Read",
     "Datastore.AllocateSpace",
     "Datastore.Browse",
     "Datastore.DeleteFile",
