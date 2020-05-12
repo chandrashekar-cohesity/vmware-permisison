@@ -97,6 +97,7 @@ function RoleManagement($privilegeList) {
         if(($addPrivileges.Length -eq 0) -and ($deletePrivileges.Length -eq 0 )){
             Write-Host "================ No updated needed to the privileges ================" -ForegroundColor Yellow
             Disconnect-VIServer -Server $vc -Confirm:$false
+            Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"   
             exit
         }
         elseif(($addPrivileges.Length -eq 0) -and ($deletePrivileges.Length -ge 0 )){
@@ -124,6 +125,7 @@ function RoleManagement($privilegeList) {
         Set-VIPermission -Role $roleName -Permission (Get-VIPermission -Principal $userName)
         Write-Host "================ Updated $roleName. Check logs for more details ================" -ForegroundColor Green
         Disconnect-VIServer -Server $vc -Confirm:$false
+        Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"   
         exit
     }
     else{
@@ -132,6 +134,7 @@ function RoleManagement($privilegeList) {
         New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
         Write-Host "================ Assigning $roleName to $userName sucessful. Check logs for more details ================" -ForegroundColor Green
         Disconnect-VIServer -Server $vc -Confirm:$false
+        Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"   
         exit
     }
     
