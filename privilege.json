@@ -44,14 +44,13 @@
     "VirtualMachine.State.RevertToSnapshot",
     "InventoryService.Tagging.AttachTag"
   ],
-  "VMwareSnapshotAptThrot": [
+  "VMwareSnapshotAdptThrot": [
     "Datastore.Config"
   ],
-  "VMwareSnapshotAptThrotEncyptVM": [
+  "VMwareSnapshotEncyptVM": [
     "Cryptographer.Access",
     "Cryptographer.AddDisk",
-    "Cryptographer.Encrypt",
-    "Datastore.Config"
+    "Cryptographer.Encrypt"
   ],
   "StorageSnapshotIntegration": [
     "Datastore.Rename",
@@ -66,8 +65,7 @@
   "StorageSnapshotIntegrationAdptThrot": [
     "Datastore.Config"
   ],
-  "StorageSnapshotIntegrationAdptThrotEncryptVM": [
-    "Datastore.Config",
+  "StorageSnapshotIntegrationEncryptVM": [
     "Cryptographer.Access",
     "Cryptographer.AddDisk",
     "Cryptographer.Encrypt"
