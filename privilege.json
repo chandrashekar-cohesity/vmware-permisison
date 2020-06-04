@@ -42,7 +42,8 @@
     "VirtualMachine.State.CreateSnapshot",
     "VirtualMachine.State.RemoveSnapshot",
     "VirtualMachine.State.RevertToSnapshot",
-    "InventoryService.Tagging.AttachTag"
+    "InventoryService.Tagging.AttachTag",
+    "Host.Local.DeleteVM"
   ],
   "VMwareSnapshotAdptThrot": [
     "Datastore.Config"

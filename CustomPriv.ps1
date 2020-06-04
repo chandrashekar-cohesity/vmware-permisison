@@ -95,13 +95,11 @@ function RoleManagement($privilegeList) {
         $existingStringPrivileges = $existingPrivileges | ForEach-Object{($_.Id)}                            
         $deletePrivilegesObj = Compare-Object -ReferenceObject $existingStringPrivileges -DifferenceObject $privilegeList | leftside
         $addPrivilegesObj = Compare-Object -ReferenceObject $existingStringPrivileges -DifferenceObject $privilegeList | rightside
-        
         $deletePrivileges = $deletePrivilegesObj | ForEach-Object {$_.InputObject} 
         $addPrivileges = $addPrivilegesObj | ForEach-Object {$_.InputObject} 
 
         if(($addPrivileges.Length -eq 0) -and ($deletePrivileges.Length -eq 0 )){
             Write-Host "====================== No updated needed to the privileges =====================" -ForegroundColor Yellow
-            Disconnect-VIServer -Server $vc -Confirm:$false
             Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"   
             exit
         }
@@ -110,12 +108,14 @@ function RoleManagement($privilegeList) {
             $deletePrivileges
             Write-Host "================================================================================" -ForegroundColor Yellow
             Set-VIRole -Role (Get-VIRole -Name $roleName) -RemovePrivilege (Get-VIPrivilege -id $deletePrivileges -Server $vc)
+            exit
         }
         elseif(($addPrivileges.Length -ge 0) -and ($deletePrivileges.Length -eq 0 )){
             Write-Host "======================= Adding the following privileges ========================" -ForegroundColor Yellow
             $addPrivileges
             Write-Host "================================================================================" -ForegroundColor Yellow
             Set-VIRole -Role (Get-VIRole -Name $roleName) -AddPrivilege (Get-VIPrivilege -id $addPrivileges -Server $vc) 
+            exit
         }
         else{
             Write-Host "======================= Adding the following privileges ========================" -ForegroundColor Yellow
@@ -126,11 +126,11 @@ function RoleManagement($privilegeList) {
             Write-Host "================================================================================" -ForegroundColor Yellow
             Set-VIRole -Role (Get-VIRole -Name $roleName) -RemovePrivilege (Get-VIPrivilege -id $deletePrivileges -Server $vc)
             Set-VIRole -Role (Get-VIRole -Name $roleName) -AddPrivilege (Get-VIPrivilege -id $addPrivileges -Server $vc)
+            exit
         }
         $rootFolder = Get-Folder -NoRecursion
         Set-VIPermission -Role $roleName -Permission (Get-VIPermission -Principal $userName)
         Write-Host "================ Updated $roleName. Check logs for more details ================" -ForegroundColor Green
-        Disconnect-VIServer -Server $vc -Confirm:$false
         Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"   
         exit
     }
@@ -139,7 +139,6 @@ function RoleManagement($privilegeList) {
         $rootFolder = Get-Folder -NoRecursion
         New-VIPermission -Entity $rootFolder -Principal $userName -Role $roleName
         Write-Host "================== Assigning $roleName to $userName sucessful.==================" -ForegroundColor Green
-        Disconnect-VIServer -Server $vc -Confirm:$false
         Add-Content $LogFile  "$((Get-Date).ToString()): Exiting the script"   
         exit
     }
